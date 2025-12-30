@@ -9,26 +9,26 @@ datasource db {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model BundleTemplate {
-  id                 String               @id
-  name               String               @unique
-  description        String?
-  baseItemId         String
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime
-  Item               Item                 @relation(fields: [baseItemId], references: [id], onDelete: Cascade)
-  BundleTemplateItem BundleTemplateItem[]
+  id          String               @id @default(cuid())
+  name        String               @unique
+  description String?
+  baseItemId  String
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  baseItem    Item                 @relation(fields: [baseItemId], references: [id], onDelete: Cascade)
+  items       BundleTemplateItem[]
 
   @@index([baseItemId])
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model BundleTemplateItem {
-  id                  String         @id
+  id                  String         @id @default(cuid())
   bundleTemplateId    String
   itemId              String
   quantityPerBaseUnit Int            @default(1)
-  BundleTemplate      BundleTemplate @relation(fields: [bundleTemplateId], references: [id], onDelete: Cascade)
-  Item                Item           @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  bundleTemplate      BundleTemplate @relation(fields: [bundleTemplateId], references: [id], onDelete: Cascade)
+  item                Item           @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
   @@unique([bundleTemplateId, itemId])
   @@index([bundleTemplateId])
@@ -51,7 +51,7 @@ model Category {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model Challan {
-  id                 String        @id
+  id                 String        @id @default(cuid())
   challanNumber      String        @unique
   projectId          String
   truckNumber        String?
@@ -63,9 +63,9 @@ model Challan {
   expectedReturnDate DateTime?
   remarks            String?
   createdAt          DateTime      @default(now())
-  User               User          @relation(fields: [createdByUserId], references: [id])
-  Project            Project       @relation(fields: [projectId], references: [id])
-  ChallanItem        ChallanItem[]
+  createdBy          User          @relation(fields: [createdByUserId], references: [id])
+  project            Project       @relation(fields: [projectId], references: [id])
+  items              ChallanItem[]
 
   @@index([challanNumber])
   @@index([createdByUserId])
@@ -76,13 +76,13 @@ model Challan {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model ChallanItem {
-  id        String  @id
+  id        String  @id @default(cuid())
   challanId String
   itemId    String
   quantity  Int
   notes     String?
-  Challan   Challan @relation(fields: [challanId], references: [id], onDelete: Cascade)
-  Item      Item    @relation(fields: [itemId], references: [id])
+  challan   Challan @relation(fields: [challanId], references: [id], onDelete: Cascade)
+  item      Item    @relation(fields: [itemId], references: [id])
 
   @@index([challanId])
   @@index([itemId])
@@ -90,33 +90,33 @@ model ChallanItem {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model Item {
-  id                 String               @id
-  categoryId         String
-  subcategoryId      String?
-  name               String
-  description        String?
-  quantityAvailable  Int                  @default(0)
-  condition          ItemCondition        @default(GOOD)
-  cost               Float?
-  vendor             String?
-  remarks            String?
-  imageUrl1          String?
-  imageUrl2          String?
-  imageUrl3          String?
-  currentLocation    String?
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime
-  BundleTemplate     BundleTemplate[]
-  BundleTemplateItem BundleTemplateItem[]
-  ChallanItem        ChallanItem[]
-  Category           Category             @relation(fields: [categoryId], references: [id])
-  Subcategory        Subcategory?         @relation(fields: [subcategoryId], references: [id])
-  MaintenanceRecord  MaintenanceRecord[]
-  PurchaseOrderItem  PurchaseOrderItem[]
-  RepairQueue        RepairQueue[]
-  ScrapRecord        ScrapRecord[]
-  SiteInventory      SiteInventory[]
-  StockMovement      StockMovement[]
+  id                  String               @id @default(cuid())
+  categoryId          String
+  subcategoryId       String?
+  name                String
+  description         String?
+  quantityAvailable   Int                  @default(0)
+  condition           ItemCondition        @default(GOOD)
+  cost                Float?
+  vendor              String?
+  remarks             String?
+  imageUrl1           String?
+  imageUrl2           String?
+  imageUrl3           String?
+  currentLocation     String?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  bundleTemplates     BundleTemplate[]
+  bundleTemplateItems BundleTemplateItem[]
+  challanItems        ChallanItem[]
+  category            Category             @relation(fields: [categoryId], references: [id])
+  subcategory         Subcategory?         @relation(fields: [subcategoryId], references: [id])
+  maintenanceRecords  MaintenanceRecord[]
+  purchaseOrderItems  PurchaseOrderItem[]
+  repairQueue         RepairQueue[]
+  scrapRecords        ScrapRecord[]
+  siteInventory       SiteInventory[]
+  stockMovements      StockMovement[]
 
   @@index([categoryId])
   @@index([condition])
@@ -307,7 +307,7 @@ model SiteInventory {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model StockMovement {
-  id                String         @id
+  id                String         @id @default(cuid())
   itemId            String
   projectId         String?
   purchaseOrderId   String?
@@ -319,10 +319,10 @@ model StockMovement {
   notes             String?
   performedByUserId String
   createdAt         DateTime       @default(now())
-  Item              Item           @relation(fields: [itemId], references: [id])
-  User              User           @relation(fields: [performedByUserId], references: [id])
-  Project           Project?       @relation(fields: [projectId], references: [id])
-  PurchaseOrder     PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
+  item              Item           @relation(fields: [itemId], references: [id])
+  performedBy       User           @relation(fields: [performedByUserId], references: [id])
+  project           Project?       @relation(fields: [projectId], references: [id])
+  purchaseOrder     PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
 
   @@index([createdAt])
   @@index([itemId])
