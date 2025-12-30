@@ -37,14 +37,14 @@ model BundleTemplateItem {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model Category {
-  id          String        @id
-  name        String        @unique
-  description String?
-  imageUrl    String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime
-  Item        Item[]
-  Subcategory Subcategory[]
+  id            String        @id @default(cuid())
+  name          String        @unique
+  description   String?
+  imageUrl      String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  items         Item[]
+  subcategories Subcategory[]
 
   @@index([name])
 }
@@ -127,7 +127,7 @@ model Item {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model LabourAttendance {
-  id             String    @id
+  id             String    @id @default(cuid())
   labourName     String
   shiftType      ShiftType
   siteId         String?
@@ -139,9 +139,9 @@ model LabourAttendance {
   notes          String?
   markedByUserId String
   createdAt      DateTime  @default(now())
-  updatedAt      DateTime
-  User           User      @relation(fields: [markedByUserId], references: [id])
-  Site           Site?     @relation(fields: [siteId], references: [id])
+  updatedAt      DateTime  @updatedAt
+  markedBy       User      @relation(fields: [markedByUserId], references: [id])
+  site           Site?     @relation(fields: [siteId], references: [id])
 
   @@index([attendanceDate])
   @@index([labourName])
@@ -151,15 +151,15 @@ model LabourAttendance {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model MaintenanceRecord {
-  id               String            @id
+  id               String            @id @default(cuid())
   itemId           String
   status           MaintenanceStatus @default(PENDING)
   notes            String?
   assignedToUserId String?
   createdAt        DateTime          @default(now())
-  updatedAt        DateTime
-  User             User?             @relation(fields: [assignedToUserId], references: [id])
-  Item             Item              @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  updatedAt        DateTime          @updatedAt
+  assignedTo       User?             @relation(fields: [assignedToUserId], references: [id])
+  item             Item              @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
   @@index([itemId])
   @@index([status])
@@ -167,19 +167,19 @@ model MaintenanceRecord {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model Project {
-  id            String          @id
-  name          String
-  type          ProjectType     @default(OTHER)
-  location      String
-  siteId        String?
-  startDate     DateTime
-  endDate       DateTime?
-  status        ProjectStatus   @default(PLANNED)
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime
-  Challan       Challan[]
-  Site          Site?           @relation(fields: [siteId], references: [id])
-  StockMovement StockMovement[]
+  id             String          @id @default(cuid())
+  name           String
+  type           ProjectType     @default(OTHER)
+  location       String
+  siteId         String?
+  startDate      DateTime
+  endDate        DateTime?
+  status         ProjectStatus   @default(PLANNED)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  challans       Challan[]
+  site           Site?           @relation(fields: [siteId], references: [id])
+  stockMovements StockMovement[]
 
   @@index([siteId])
   @@index([startDate])
@@ -188,22 +188,22 @@ model Project {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model PurchaseOrder {
-  id                String              @id
-  poNumber          String              @unique
-  vendor            String
-  orderDate         DateTime
-  expectedDate      DateTime?
-  status            POStatus            @default(PENDING)
-  totalAmount       Float?
-  pdfUrl            String?
-  excelUrl          String?
-  notes             String?
-  createdByUserId   String
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime
-  User              User                @relation(fields: [createdByUserId], references: [id])
-  PurchaseOrderItem PurchaseOrderItem[]
-  StockMovement     StockMovement[]
+  id                 String              @id @default(cuid())
+  poNumber           String              @unique
+  vendor             String
+  orderDate          DateTime
+  expectedDate       DateTime?
+  status             POStatus            @default(PENDING)
+  totalAmount        Float?
+  pdfUrl             String?
+  excelUrl           String?
+  notes              String?
+  createdByUserId    String
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  createdBy          User                @relation(fields: [createdByUserId], references: [id])
+  items              PurchaseOrderItem[]
+  stockMovements     StockMovement[]
 
   @@index([poNumber])
   @@index([status])
@@ -212,7 +212,7 @@ model PurchaseOrder {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model PurchaseOrderItem {
-  id               String        @id
+  id               String        @id @default(cuid())
   purchaseOrderId  String
   itemId           String
   orderedQuantity  Int
@@ -220,9 +220,9 @@ model PurchaseOrderItem {
   unitCost         Float?
   notes            String?
   createdAt        DateTime      @default(now())
-  updatedAt        DateTime
-  Item             Item          @relation(fields: [itemId], references: [id])
-  PurchaseOrder    PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  updatedAt        DateTime      @updatedAt
+  item             Item          @relation(fields: [itemId], references: [id])
+  purchaseOrder    PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
 
   @@index([itemId])
   @@index([purchaseOrderId])
@@ -230,7 +230,7 @@ model PurchaseOrderItem {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model RepairQueue {
-  id               String       @id
+  id               String       @id @default(cuid())
   itemId           String
   status           RepairStatus @default(PENDING)
   assignedToUserId String?
@@ -242,9 +242,9 @@ model RepairQueue {
   startDate        DateTime?
   completedDate    DateTime?
   createdAt        DateTime     @default(now())
-  updatedAt        DateTime
-  User             User?        @relation(fields: [assignedToUserId], references: [id])
-  Item             Item         @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  updatedAt        DateTime     @updatedAt
+  assignedTo       User?        @relation(fields: [assignedToUserId], references: [id])
+  item             Item         @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
   @@index([assignedToUserId])
   @@index([itemId])
@@ -253,7 +253,7 @@ model RepairQueue {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model ScrapRecord {
-  id             String          @id
+  id             String          @id @default(cuid())
   itemId         String
   reason         String
   disposalMethod DisposalMethod?
@@ -262,7 +262,7 @@ model ScrapRecord {
   disposalNotes  String?
   approvedBy     String?
   createdAt      DateTime        @default(now())
-  Item           Item            @relation(fields: [itemId], references: [id])
+  item           Item            @relation(fields: [itemId], references: [id])
 
   @@index([disposalDate])
   @@index([itemId])
@@ -270,23 +270,23 @@ model ScrapRecord {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model Site {
-  id               String             @id
-  name             String             @unique
-  location         String
-  description      String?
-  isActive         Boolean            @default(true)
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime
-  LabourAttendance LabourAttendance[]
-  Project          Project[]
-  SiteInventory    SiteInventory[]
+  id                 String             @id @default(cuid())
+  name               String             @unique
+  location           String
+  description        String?
+  isActive           Boolean            @default(true)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  labourAttendances  LabourAttendance[]
+  projects           Project[]
+  siteInventory      SiteInventory[]
 
   @@index([name])
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model SiteInventory {
-  id                 String    @id
+  id                 String    @id @default(cuid())
   siteId             String
   shiftType          ShiftType
   itemId             String
@@ -296,9 +296,9 @@ model SiteInventory {
   actualReturnDate   DateTime?
   notes              String?
   createdAt          DateTime  @default(now())
-  updatedAt          DateTime
-  Item               Item      @relation(fields: [itemId], references: [id])
-  Site               Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  updatedAt          DateTime  @updatedAt
+  item               Item      @relation(fields: [itemId], references: [id])
+  site               Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
 
   @@unique([siteId, itemId])
   @@index([itemId])
@@ -334,15 +334,15 @@ model StockMovement {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model Subcategory {
-  id          String   @id
+  id          String   @id @default(cuid())
   categoryId  String
   name        String
   description String?
   imageUrl    String?
   createdAt   DateTime @default(now())
-  updatedAt   DateTime
-  Item        Item[]
-  Category    Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  updatedAt   DateTime @updatedAt
+  items       Item[]
+  category    Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
   @@unique([categoryId, name])
   @@index([categoryId])
@@ -350,19 +350,19 @@ model Subcategory {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model User {
-  id                String              @id
-  name              String
-  email             String              @unique
-  passwordHash      String
-  role              UserRole            @default(VIEWER)
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime
-  Challan           Challan[]
-  LabourAttendance  LabourAttendance[]
-  MaintenanceRecord MaintenanceRecord[]
-  PurchaseOrder     PurchaseOrder[]
-  RepairQueue       RepairQueue[]
-  StockMovement     StockMovement[]
+  id                 String              @id @default(cuid())
+  name               String
+  email              String              @unique
+  passwordHash       String
+  role               UserRole            @default(VIEWER)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  challans           Challan[]
+  labourAttendances  LabourAttendance[]
+  maintenanceRecords MaintenanceRecord[]
+  purchaseOrders     PurchaseOrder[]
+  repairQueue        RepairQueue[]
+  stockMovements     StockMovement[]
 
   @@index([email])
   @@index([role])

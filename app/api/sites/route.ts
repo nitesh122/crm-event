@@ -19,7 +19,7 @@ export async function GET() {
           select: {
             projects: true,
             siteInventory: true,
-            labourAttendance: true,
+            labourAttendances: true,
           },
         },
       },

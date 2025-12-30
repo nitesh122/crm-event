@@ -15,7 +15,7 @@ export default async function SitesPage() {
         select: {
           projects: true,
           siteInventory: true,
-          labourAttendance: true,
+          labourAttendances: true,
         },
       },
     },
@@ -109,7 +109,7 @@ export default async function SitesPage() {
                       <td className="table-cell">{site._count.projects}</td>
                       <td className="table-cell">{site._count.siteInventory}</td>
                       <td className="table-cell">
-                        {site._count.labourAttendance}
+                        {site._count.labourAttendances}
                       </td>
                       <td className="table-cell">
                         <div className="flex gap-2">

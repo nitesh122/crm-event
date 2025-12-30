@@ -27,7 +27,7 @@ export default async function SiteDetailPage({
         select: {
           projects: true,
           siteInventory: true,
-          labourAttendance: true,
+          labourAttendances: true,
         },
       },
     },

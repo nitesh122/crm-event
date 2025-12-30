@@ -22,7 +22,7 @@ export default async function UsersPage() {
       _count: {
         select: {
           stockMovements: true,
-          challansCreated: true,
+          challans: true,
         },
       },
     },
@@ -74,7 +74,7 @@ export default async function UsersPage() {
                       {user._count.stockMovements}
                     </td>
                     <td className="table-cell">
-                      {user._count.challansCreated}
+                      {user._count.challans}
                     </td>
                     <td className="table-cell">
                       {new Date(user.createdAt).toLocaleDateString()}
