@@ -385,7 +385,7 @@ export default async function PrintChallanPage({
               {/* Using same summary structure as original file */}
               <tr>
                 <td className="text-center">1</td>
-                <td>EVENT MANAGEMENT SERVICES</td>
+                <td><span style={{ borderBottom: "1px solid #000", display: "inline-block", width: "90%" }}>&nbsp;</span></td>
                 <td className="text-center">-</td>
                 <td className="text-right">-</td>
                 <td className="text-right">₹ {amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>

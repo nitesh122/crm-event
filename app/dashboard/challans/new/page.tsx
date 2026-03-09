@@ -110,9 +110,6 @@ export default function NewChallanPage() {
           if (siteRes.ok) {
             const siteData: Site = await siteRes.json();
 
-            // Pre-fill with site as project (assuming site has related project)
-            // For now, we'll use site ID directly or leave it for user to select
-            setRemarks(`Items deployed to: ${siteData.name}`);
             setMovementDirection("OUTWARD");
 
             // Pre-fill items from site inventory
