@@ -89,7 +89,7 @@ export async function PUT(
   }
 }
 
-// DELETE /api/sites/[id] - Delete site
+// DELETE /api/sites/[id] - Delete site and return all unreturned items to stock
 export async function DELETE(
   request: Request,
   { params }: { params: { id: string } }
@@ -100,16 +100,63 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    await prisma.site.delete({
-      where: { id: params.id },
+    // Step 1: Find all SiteInventory rows that have NOT been returned yet
+    const unreturnedInventory = await prisma.siteInventory.findMany({
+      where: {
+        siteId: params.id,
+        actualReturnDate: null, // only items still out
+      },
+      include: {
+        item: { select: { id: true, quantityAvailable: true, name: true } },
+      },
     });
 
-    return NextResponse.json({ success: true });
+    // Step 2: Run everything in a single transaction for safety
+    await prisma.$transaction(async (tx) => {
+      // For each unreturned item: restore stock + create INWARD movement
+      for (const inv of unreturnedInventory) {
+        const newQty = inv.item.quantityAvailable + inv.quantityDeployed;
+
+        // Restore quantity
+        await tx.item.update({
+          where: { id: inv.itemId },
+          data: { quantityAvailable: newQty },
+        });
+
+        // Record inward stock movement
+        await tx.stockMovement.create({
+          data: {
+            itemId: inv.itemId,
+            movementType: "INWARD",
+            quantity: inv.quantityDeployed,
+            previousQuantity: inv.item.quantityAvailable,
+            newQuantity: newQty,
+            notes: `Auto-returned on site deletion (Site ID: ${params.id})`,
+            performedByUserId: session.user.id,
+          },
+        });
+      }
+
+      // Step 3: Delete the site (cascades to SiteInventory, Challans, etc. per schema)
+      await tx.site.delete({
+        where: { id: params.id },
+      });
+    });
+
+    return NextResponse.json({
+      success: true,
+      itemsReturned: unreturnedInventory.length,
+      message:
+        unreturnedInventory.length > 0
+          ? `Site deleted. ${unreturnedInventory.length} item(s) returned to stock.`
+          : "Site deleted successfully.",
+    });
   } catch (error) {
     console.error("Error deleting site:", error);
     return NextResponse.json(
-      { error: "Failed to delete site. It may have associated records." },
+      { error: "Failed to delete site." },
       { status: 500 }
     );
   }
 }
+
