@@ -97,7 +97,7 @@ export default function AttendanceRow({
             </td>
             {/* Day columns */}
             {Array.from({ length: daysInMonth }, (_, i) => (
-                <td key={i} className="border border-gray-300 px-0 py-0">
+                <td key={i} className="border border-gray-300 px-0 py-0 min-w-[3rem]">
                     <ShiftInput
                         value={sheet.attendanceJson[i] || 0}
                         onChange={(value) => onShiftChange(sheet.id, i, value)}

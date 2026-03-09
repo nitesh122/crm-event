@@ -10,7 +10,7 @@ export default function ShiftInput({ value, onChange }: ShiftInputProps) {
         <select
             value={value}
             onChange={(e) => onChange(parseFloat(e.target.value))}
-            className="w-full px-1 py-1 text-center border-0 text-sm font-medium bg-white"
+            className="min-w-[3rem] w-12 px-0 py-1 text-center border-0 text-xs font-medium bg-transparent cursor-pointer"
         >
             {shiftOptions.map((opt) => (
                 <option key={opt} value={opt}>
