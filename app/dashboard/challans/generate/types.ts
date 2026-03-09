@@ -9,6 +9,9 @@ export type SiteItem = {
     weightPerUnit: number | null;
     totalWeight: number;
     hsnCode: string | null;
+    isKitComponent?: boolean;
+    kitName?: string | null;
+    componentType?: string | null;
 };
 
 export type TruckItem = {
@@ -46,4 +49,17 @@ export type ChallanFormData = {
 export type PendingDrop = {
     item: SiteItem;
     truckId: string;
+};
+
+export type KitGroup = {
+    bundleTemplateId: string;
+    kitName: string;
+    kitQuantity: number;
+    components: {
+        itemId: string;
+        itemName: string;
+        componentType: string | null;
+        quantityDeployed: number;
+        quantityPerKit: number;
+    }[];
 };

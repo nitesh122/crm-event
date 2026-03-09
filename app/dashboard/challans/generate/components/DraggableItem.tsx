@@ -37,10 +37,17 @@ export default function DraggableItem({ item }: DraggableItemProps) {
             <div className="flex items-start justify-between">
                 <div className="flex-1">
                     <div className="flex items-center gap-2">
-                        <span className="text-lg">📦</span>
-                        <p className="font-medium text-gray-900">{item.itemName}</p>
+                        <span className="text-lg">{item.isKitComponent ? "⛺" : "📦"}</span>
+                        <p className="font-medium text-gray-900 text-sm">{item.itemName}</p>
                     </div>
-                    <p className="text-xs text-gray-600 mt-1">{item.categoryName}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                        <p className="text-xs text-gray-500">{item.categoryName}</p>
+                        {item.isKitComponent && item.kitName && (
+                            <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium">
+                                {item.kitName}
+                            </span>
+                        )}
+                    </div>
                 </div>
                 <div className="text-right">
                     <p className="text-sm font-bold text-primary-600">

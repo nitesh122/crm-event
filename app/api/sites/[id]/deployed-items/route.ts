@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 
 // GET /api/sites/[id]/deployed-items
 // Returns items currently deployed at the site (not yet returned)
+// Also returns kitGroups for grouped display in the challan generate page
 export async function GET(
     request: Request,
     { params }: { params: { id: string } }
@@ -24,11 +25,31 @@ export async function GET(
                 item: {
                     include: {
                         category: true,
+                        // For kit components: get which BundleTemplate they belong to
+                        bundleTemplateItems: {
+                            include: {
+                                bundleTemplate: {
+                                    select: {
+                                        id: true,
+                                        name: true,
+                                        items: {
+                                            select: {
+                                                quantityPerBaseUnit: true,
+                                                item: {
+                                                    select: { id: true, name: true, componentType: true },
+                                                },
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
                     },
                 },
             },
         });
 
+        // Build flat items list for drag-and-drop / challan assignment
         const items = siteInventory.map((inv) => ({
             itemId: inv.itemId,
             itemName: inv.item.name,
@@ -38,9 +59,62 @@ export async function GET(
             weightPerUnit: inv.item.weightPerUnit,
             totalWeight: (inv.item.weightPerUnit || 0) * inv.quantityDeployed,
             hsnCode: inv.item.hsnCode,
+            isKitComponent: inv.item.bundleTemplateItems.length > 0,
+            kitName: inv.item.bundleTemplateItems[0]?.bundleTemplate.name ?? null,
+            componentType: inv.item.componentType ?? null,
         }));
 
-        return NextResponse.json({ items });
+        // Build grouped kit data for the summary panel
+        const kitGroupMap = new Map<string, {
+            bundleTemplateId: string;
+            kitName: string;
+            kitQuantity: number;
+            components: {
+                itemId: string;
+                itemName: string;
+                componentType: string | null;
+                quantityDeployed: number;
+                quantityPerKit: number;
+            }[];
+        }>();
+
+        for (const inv of siteInventory) {
+            const btItem = inv.item.bundleTemplateItems[0];
+            if (!btItem) continue;
+            const bt = btItem.bundleTemplate;
+            const qtyPerKit = bt.items.find((x) => x.item.id === inv.item.id)?.quantityPerBaseUnit ?? 1;
+            const kitsFromRow = Math.floor(inv.quantityDeployed / qtyPerKit);
+
+            const existing = kitGroupMap.get(bt.id);
+            if (existing) {
+                existing.kitQuantity = Math.min(existing.kitQuantity, kitsFromRow);
+                existing.components.push({
+                    itemId: inv.item.id,
+                    itemName: inv.item.name,
+                    componentType: inv.item.componentType ?? null,
+                    quantityDeployed: inv.quantityDeployed,
+                    quantityPerKit: qtyPerKit,
+                });
+            } else {
+                kitGroupMap.set(bt.id, {
+                    bundleTemplateId: bt.id,
+                    kitName: bt.name,
+                    kitQuantity: kitsFromRow,
+                    components: [{
+                        itemId: inv.item.id,
+                        itemName: inv.item.name,
+                        componentType: inv.item.componentType ?? null,
+                        quantityDeployed: inv.quantityDeployed,
+                        quantityPerKit: qtyPerKit,
+                    }],
+                });
+            }
+        }
+
+        return NextResponse.json({
+            items,
+            kitGroups: Array.from(kitGroupMap.values()),
+        });
     } catch (error) {
         console.error("Error fetching deployed items:", error);
         return NextResponse.json(

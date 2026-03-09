@@ -24,16 +24,23 @@ export default async function SiteInventoryPage({
         include: {
           category: true,
           subcategory: true,
-          bundleTemplates: {
+          // For kit components: grab bundle template info to find kit name
+          bundleTemplateItems: {
             include: {
-              items: {
-                include: {
-                  item: {
+              bundleTemplate: {
+                select: {
+                  id: true,
+                  name: true,
+                  items: {
                     select: {
-                      id: true,
-                      name: true,
-                      componentType: true,
-                      quantityAvailable: true,
+                      quantityPerBaseUnit: true,
+                      item: {
+                        select: {
+                          id: true,
+                          name: true,
+                          componentType: true,
+                        },
+                      },
                     },
                   },
                 },

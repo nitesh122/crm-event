@@ -8,19 +8,71 @@ import Header from "@/components/Header";
 import { useToast } from "@/lib/hooks/useToast";
 import { useSiteItems } from "./hooks/useSiteItems";
 import { useProjects } from "./hooks/useProjects";
-import { SiteItem, Truck, TruckItem, PendingDrop } from "./types";
+import { SiteItem, KitGroup, Truck, TruckItem, PendingDrop } from "./types";
 import DraggableItem from "./components/DraggableItem";
 import TruckDropZone from "./components/TruckDropZone";
 import QuantityDialog from "./components/QuantityDialog";
 
+
+// KitGroupCard: shows a tent kit grouped summary (used in challan generate page)
+function KitGroupCard({ kg }: { kg: KitGroup }) {
+    const [open, setOpen] = useState(false);
+    return (
+        <div className="bg-white border border-amber-200 rounded-xl overflow-hidden shadow-sm">
+            <button
+                type="button"
+                onClick={() => setOpen((o) => !o)}
+                className="w-full flex items-center justify-between px-4 py-3 hover:bg-amber-50 transition"
+            >
+                <div className="flex items-center gap-3">
+                    <span className="text-lg">⛺</span>
+                    <span className="font-semibold text-gray-900">{kg.kitName}</span>
+                    <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-semibold">
+                        ×{kg.kitQuantity} {kg.kitQuantity === 1 ? "tent" : "tents"}
+                    </span>
+                    <span className="text-xs text-gray-500">{kg.components.length} components</span>
+                </div>
+                <svg className={`w-4 h-4 text-amber-700 transition-transform ${open ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+            </button>
+            {open && (
+                <div className="border-t border-amber-100 px-4 py-2 bg-amber-50">
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="text-xs text-gray-500 uppercase">
+                                <th className="text-left py-1">Component</th>
+                                <th className="text-left py-1">Type</th>
+                                <th className="text-right py-1">Qty/Kit</th>
+                                <th className="text-right py-1">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {kg.components.map((c) => (
+                                <tr key={c.itemId} className="border-t border-amber-100">
+                                    <td className="py-1.5 text-gray-800">{c.itemName}</td>
+                                    <td className="py-1.5 text-gray-500 text-xs">{c.componentType ?? "—"}</td>
+                                    <td className="py-1.5 text-right text-gray-600">×{c.quantityPerKit}</td>
+                                    <td className="py-1.5 text-right font-semibold text-gray-900">{c.quantityDeployed}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+        </div>
+    );
+}
+
 export default function GenerateChallansPage() {
+
     const searchParams = useSearchParams();
     const router = useRouter();
     const siteId = searchParams.get("siteId");
     const { success, error } = useToast();
 
     // Fetch data
-    const { items: siteItems, loading: itemsLoading } = useSiteItems(siteId);
+    const { items: siteItems, kitGroups, loading: itemsLoading } = useSiteItems(siteId);
     const { projects, loading: projectsLoading } = useProjects();
 
     // State
@@ -338,6 +390,23 @@ export default function GenerateChallansPage() {
                             ))}
                         </select>
                     </div>
+
+                    {/* Kit Summary Panel */}
+                    {kitGroups.length > 0 && (
+                        <div className="card border border-amber-200 bg-amber-50">
+                            <h2 className="text-lg font-semibold mb-3 text-amber-900">
+                                ⛺ Tent Kits at this Site
+                                <span className="ml-2 text-sm font-normal text-amber-700">
+                                    (grouped view — assign individual items below)
+                                </span>
+                            </h2>
+                            <div className="space-y-2">
+                                {kitGroups.map((kg: KitGroup) => (
+                                    <KitGroupCard key={kg.bundleTemplateId} kg={kg} />
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Main Layout - Items and Trucks */}
                     {siteItems.length === 0 ? (

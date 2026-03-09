@@ -46,7 +46,7 @@ export default function TentKitSelector({
     const [loading, setLoading] = useState(true);
     const [selectedKit, setSelectedKit] = useState<TentKit | null>(null);
     const [kitQty, setKitQty] = useState(1);
-    const [expanded, setExpanded] = useState(false);
+    const [expanded, setExpanded] = useState(true); // expanded by default — deploying kits is primary action
 
     useEffect(() => {
         fetch("/api/tent-kits")
@@ -210,7 +210,9 @@ export default function TentKitSelector({
                                                             {isAlreadyAdded && "⚠ "}
                                                             {comp.name}
                                                             {comp.componentType && (
-                                                                <span className="text-gray-400 ml-1">({comp.componentType})</span>
+                                                                <span className="text-xs font-medium ml-1 bg-gray-200 text-gray-600 px-1 py-0.5 rounded">
+                                                                    {comp.componentType}
+                                                                </span>
                                                             )}
                                                         </span>
                                                         <div className="flex items-center gap-2">
