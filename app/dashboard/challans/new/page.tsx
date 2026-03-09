@@ -93,7 +93,7 @@ export default function NewChallanPage() {
         // Fetch projects and items
         const [projectsData, itemsData] = await Promise.all([
           fetch("/api/projects").then((r) => r.json()),
-          fetch("/api/inventory/items").then((r) => r.json()),
+          fetch("/api/inventory/items?all=true&showKitComponents=true").then((r) => r.json()),
         ]);
 
         setProjects(projectsData);

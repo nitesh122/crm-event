@@ -64,7 +64,7 @@ export default async function PackingListPage({
                 <style>{`
           @media print {
             body { margin: 0; padding: 10px; }
-            @page { size: A4; margin: 10mm; }
+            @page { size: A4 portrait; margin: 10mm; }
           }
           body {
             font-family: Arial, sans-serif;
@@ -151,16 +151,10 @@ export default async function PackingListPage({
           }
           .text-center { text-align: center; }
           .text-right { text-align: right; }
-          .declaration {
-            margin-top: 15px;
-            text-align: center;
-            font-weight: bold;
-            font-style: italic;
-          }
           .signature-section {
             display: flex;
             justify-content: space-between;
-            margin-top: 50px;
+            margin-top: 30px;
           }
           .signature-box {
             width: 30%;
@@ -259,13 +253,12 @@ export default async function PackingListPage({
                 <table>
                     <thead>
                         <tr>
-                            <th className="text-center" style={{ width: "5%" }}>S.No</th>
-                            <th style={{ width: "45%" }}>Description of Goods</th>
-                            <th className="text-center" style={{ width: "12%" }}>Size</th>
-                            <th className="text-center" style={{ width: "12%" }}>Length</th>
-                            <th className="text-center" style={{ width: "8%" }}>Qty</th>
+                            <th className="text-center" style={{ width: "6%" }}>S.No</th>
+                            <th style={{ width: "54%" }}>Description of Goods</th>
+                            <th className="text-center" style={{ width: "14%" }}>Size</th>
+                            <th className="text-center" style={{ width: "10%" }}>Qty</th>
                             <th className="text-center" style={{ width: "8%" }}>Unit</th>
-                            <th className="text-center" style={{ width: "10%" }}>HSN/SAC</th>
+                            <th className="text-center" style={{ width: "8%" }}>HSN/SAC</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -274,17 +267,15 @@ export default async function PackingListPage({
                                 <td className="text-center">{index + 1}</td>
                                 <td>{challanItem.item.name}</td>
                                 <td className="text-center">-</td>
-                                <td className="text-center">-</td>
                                 <td className="text-center">{challanItem.quantity}</td>
                                 <td className="text-center">Nos</td>
                                 <td className="text-center">{challanItem.item.hsnCode || "-"}</td>
                             </tr>
                         ))}
                         {/* Empty rows to fill page */}
-                        {Array.from({ length: Math.max(0, 15 - sortedItems.length) }).map((_, i) => (
+                        {Array.from({ length: Math.max(0, 12 - sortedItems.length) }).map((_, i) => (
                             <tr key={`empty-${i}`}>
                                 <td className="text-center">&nbsp;</td>
-                                <td>&nbsp;</td>
                                 <td>&nbsp;</td>
                                 <td>&nbsp;</td>
                                 <td>&nbsp;</td>
@@ -295,17 +286,15 @@ export default async function PackingListPage({
                     </tbody>
                 </table>
 
-                {/* Declaration */}
-                <div className="declaration">
-                    "We hereby declare that goods are going only for Rental purpose and NOT FOR SALE"
-                </div>
-
                 {/* Remarks */}
-                {challan.remarks && (
-                    <div style={{ marginTop: "10px" }}>
-                        <strong>Remarks:</strong> {challan.remarks}
-                    </div>
-                )}
+                <div style={{ marginTop: "10px" }}>
+                    <strong>Remarks:</strong>{" "}
+                    {challan.remarks ? (
+                        <span>{challan.remarks}</span>
+                    ) : (
+                        <span style={{ borderBottom: "1px solid #000", display: "inline-block", width: "75%", marginLeft: "6px" }}>&nbsp;</span>
+                    )}
+                </div>
 
                 {/* Signature Section */}
                 <div className="signature-section">

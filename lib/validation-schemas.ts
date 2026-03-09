@@ -12,6 +12,7 @@ import { validatePhone } from "./validation-utils";
 const phoneValidator = z
     .string()
     .optional()
+    .nullable()
     .refine(
         (val) => !val || val === "" || validatePhone(val).valid,
         { message: "Phone number must be exactly 10 digits starting with 6, 7, 8, or 9" }

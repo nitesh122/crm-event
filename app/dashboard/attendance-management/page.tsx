@@ -164,6 +164,132 @@ export default function AttendanceManagementPage() {
         }
     };
 
+    // Print attendance sheet
+    const printAttendance = () => {
+        const dayHeaders = Array.from({ length: daysInMonth }, (_, i) => `<th>${i + 1}</th>`).join("");
+        const dayTotals = Array.from({ length: daysInMonth }, (_, i) =>
+            `<td>${sheets.reduce((sum, s) => sum + (s.attendanceJson[i] || 0), 0).toFixed(0)}</td>`
+        ).join("");
+
+        const rows = sheets.map((s, idx) => {
+            const dayCells = Array.from({ length: daysInMonth }, (_, i) =>
+                `<td>${s.attendanceJson[i] || 0}</td>`
+            ).join("");
+            return `<tr>
+                <td>${idx + 1}</td>
+                <td style="text-align:left">${s.labour.name}</td>
+                ${dayCells}
+                <td>${s.totalShifts.toFixed(1)}</td>
+                <td>${s.openingBalance.toFixed(0)}</td>
+                <td>${s.dailyRate.toFixed(0)}</td>
+                <td>${s.wages.toFixed(0)}</td>
+                <td>${s.incentive.toFixed(0)}</td>
+                <td>${s.netWages.toFixed(0)}</td>
+                <td>${s.totalAdvance.toFixed(0)}</td>
+                <td>${s.netPayable.toFixed(0)}</td>
+                <td>${s.totalPaid.toFixed(0)}</td>
+                <td>${s.balanceDue.toFixed(0)}</td>
+            </tr>`;
+        }).join("");
+
+        const html = `<!DOCTYPE html>
+<html>
+<head>
+    <title>Attendance - ${siteName} - ${MONTH_NAMES[month - 1]} ${year}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; font-size: 9px; padding: 10px; }
+        h2 { font-size: 13px; margin-bottom: 8px; text-align: center; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #333; padding: 2px 3px; text-align: center; white-space: nowrap; }
+        th { background: #f0f0f0; font-weight: bold; }
+        tfoot tr { background: #e0e0e0; font-weight: bold; }
+        td:nth-child(2) { text-align: left; }
+        @page { size: landscape; margin: 8mm; }
+    </style>
+</head>
+<body>
+    <h2>Attendance Sheet — ${siteName} — ${MONTH_NAMES[month - 1]} ${year}</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>S.N.</th>
+                <th>Employee Name</th>
+                ${dayHeaders}
+                <th>Total</th>
+                <th>OP BAL</th>
+                <th>RATE</th>
+                <th>WAGES</th>
+                <th>INCENTIVE</th>
+                <th>NET WAGES</th>
+                <th>ADVANCE</th>
+                <th>NET PAYABLE</th>
+                <th>PAID</th>
+                <th>BAL DUE</th>
+            </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+        <tfoot>
+            <tr>
+                <td></td>
+                <td style="text-align:left">TOTAL</td>
+                ${dayTotals}
+                <td>${totals.totalShifts.toFixed(1)}</td>
+                <td>${totals.openingBalance.toFixed(0)}</td>
+                <td></td>
+                <td>${totals.wages.toFixed(0)}</td>
+                <td>${totals.incentive.toFixed(0)}</td>
+                <td>${totals.netWages.toFixed(0)}</td>
+                <td>${totals.totalAdvance.toFixed(0)}</td>
+                <td>${totals.netPayable.toFixed(0)}</td>
+                <td>${totals.totalPaid.toFixed(0)}</td>
+                <td>${totals.balanceDue.toFixed(0)}</td>
+            </tr>
+        </tfoot>
+    </table>
+</body>
+</html>`;
+
+        const win = window.open("", "_blank");
+        if (win) {
+            win.document.write(html);
+            win.document.close();
+            win.focus();
+            win.print();
+        }
+    };
+
+    // Export to CSV
+    const exportCSV = () => {
+        const dayHeaders = Array.from({ length: daysInMonth }, (_, i) => `${i + 1}`);
+        const headers = ["S.N.", "Employee Name", ...dayHeaders, "Total Shifts", "OP BAL", "RATE", "WAGES", "INCENTIVE", "NET WAGES", "ADVANCE", "NET PAYABLE", "PAID", "BAL DUE"];
+
+        const rows = sheets.map((s, idx) => [
+            idx + 1,
+            s.labour.name,
+            ...Array.from({ length: daysInMonth }, (_, i) => s.attendanceJson[i] || 0),
+            s.totalShifts.toFixed(1),
+            s.openingBalance.toFixed(0),
+            s.dailyRate.toFixed(0),
+            s.wages.toFixed(0),
+            s.incentive.toFixed(0),
+            s.netWages.toFixed(0),
+            s.totalAdvance.toFixed(0),
+            s.netPayable.toFixed(0),
+            s.totalPaid.toFixed(0),
+            s.balanceDue.toFixed(0),
+        ]);
+
+        const csv = [headers, ...rows].map((row) => row.join(",")).join("\n");
+        const blob = new Blob([csv], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `attendance-${siteName}-${MONTH_NAMES[month - 1]}-${year}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
     // Totals row
     const totals = sheets.reduce(
         (acc, s) => ({
@@ -280,8 +406,13 @@ export default function AttendanceManagementPage() {
                                     ({sheets.length} labours)
                                 </span>
                             </h2>
-                            <div className="text-xs text-gray-500">
-                                Click any yellow/red/green cell to edit. Shifts: 0, 0.5, 1, 1.5, 2
+                            <div className="flex gap-2">
+                                <button onClick={exportCSV} className="btn btn-secondary text-sm">
+                                    ⬇ Export CSV
+                                </button>
+                                <button onClick={printAttendance} className="btn btn-secondary text-sm">
+                                    🖨 Print
+                                </button>
                             </div>
                         </div>
 

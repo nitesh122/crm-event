@@ -22,7 +22,6 @@ type TentKit = {
     category: string | null;
     subcategory: string | null;
     availableKits: number;
-    isBalanced: boolean;
     components: ComponentItem[];
 };
 
@@ -320,9 +319,6 @@ export default function TentKitsPage() {
                                         <h3 className="text-lg font-semibold text-gray-900">{kit.name}</h3>
                                         {kit.subcategory && <p className="text-sm text-gray-500">{kit.subcategory}</p>}
                                     </div>
-                                    <span className={`text-sm font-medium px-2 py-1 rounded-full ${kit.isBalanced ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}>
-                                        {kit.isBalanced ? "✓ Balanced" : "⚠ Imbalanced"}
-                                    </span>
                                 </div>
 
                                 <div className="mb-4">

@@ -53,10 +53,6 @@ export async function GET() {
 
                 const availableKits = componentAvailability.length > 0 ? Math.min(...componentAvailability) : 0;
 
-                // Check if balanced
-                const baseQty = componentAvailability[0] || 0;
-                const isBalanced = componentAvailability.every(q => q === baseQty);
-
                 return {
                     id: kit.id,
                     name: kit.name,
@@ -65,7 +61,6 @@ export async function GET() {
                     category: kit.baseItem.category?.name,
                     subcategory: kit.baseItem.subcategory?.name,
                     availableKits,
-                    isBalanced,
                     components: kit.items.map((bundleItem) => ({
                         id: bundleItem.item.id,
                         name: bundleItem.item.name,

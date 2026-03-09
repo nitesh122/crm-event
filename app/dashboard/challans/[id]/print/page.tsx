@@ -255,15 +255,6 @@ export default async function PrintChallanPage({
              color: #fff;
              font-weight: bold;
            }
-           .declaration {
-             margin-top: 20px;
-             text-align: center;
-             font-weight: bold;
-             font-style: italic;
-             padding: 8px;
-             background: #fffbeb;
-             border: 1px solid #f59e0b;
-           }
            .signature-section {
              display: flex;
              justify-content: space-between;
@@ -414,24 +405,15 @@ export default async function PrintChallanPage({
             </tbody>
           </table>
 
-          {/* Item Details (collapsible summary) */}
-          <div style={{ marginTop: "10px", fontSize: "9px" }}>
-            <strong>Items Included:</strong> {challan.items.map((ci, i) =>
-              `${ci.item.name} (${ci.quantity})`
-            ).join(", ")}
-          </div>
-
-          {/* Declaration */}
-          <div className="declaration">
-            "Material going on Rental Basis & NOT FOR SALE"
-          </div>
-
           {/* Remarks */}
-          {challan.remarks && (
-            <div style={{ marginTop: "10px" }}>
-              <strong>Remarks:</strong> {challan.remarks}
-            </div>
-          )}
+          <div style={{ marginTop: "15px" }}>
+            <strong>Remarks:</strong>{" "}
+            {challan.remarks ? (
+              <span>{challan.remarks}</span>
+            ) : (
+              <span style={{ borderBottom: "1px solid #000", display: "inline-block", width: "80%", marginLeft: "6px" }}>&nbsp;</span>
+            )}
+          </div>
 
           {/* Signature Section */}
           <div className="signature-section">
