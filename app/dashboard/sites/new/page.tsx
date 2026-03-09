@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import CategoryItemDropdown from "@/components/CategoryItemDropdown";
-import TentKitSelector from "@/components/TentKitSelector";
+import TentKitSelector, { KitAddPayload } from "@/components/TentKitSelector";
 import { useToast } from "@/lib/hooks/useToast";
 
 type Item = {
@@ -55,20 +55,23 @@ export default function NewSitePage() {
       .catch((err) => console.error("Error fetching items:", err));
   }, []);
 
-  // Adds all components of a tent kit to deployedItems (merges quantities for duplicates)
-  const handleAddKitComponents = (kitItems: typeof deployedItems) => {
+  // Adds all components of a tent kit to deployedItems (flattened)
+  const handleAddKit = (kit: KitAddPayload) => {
     setDeployedItems((prev) => {
       const updated = [...prev];
-      for (const kitItem of kitItems) {
-        const existing = updated.findIndex((di) => di.itemId === kitItem.itemId);
+      for (const comp of kit.components) {
+        const existing = updated.findIndex((di) => di.itemId === comp.itemId);
         if (existing >= 0) {
-          // Update quantity if already in list
-          updated[existing] = {
-            ...updated[existing],
-            quantityDeployed: kitItem.quantityDeployed,
-          };
+          updated[existing] = { ...updated[existing], quantityDeployed: comp.quantityDeployed };
         } else {
-          updated.push(kitItem);
+          updated.push({
+            itemId: comp.itemId,
+            itemName: comp.itemName,
+            quantityDeployed: comp.quantityDeployed,
+            availableQuantity: comp.availableQuantity,
+            shiftType: "SITE",
+            fromKitName: `${kit.kitName} (×${kit.kitQty})`,
+          });
         }
       }
       return updated;
@@ -251,8 +254,8 @@ export default function NewSitePage() {
               <div className="space-y-4">
                 {/* Tent Kit Selector — auto-adds all components */}
                 <TentKitSelector
-                  onAddKitComponents={handleAddKitComponents}
-                  existingItemIds={deployedItems.map((d) => d.itemId)}
+                  onAddKit={handleAddKit}
+                  existingBundleIds={[]}
                 />
 
                 {/* Divider */}

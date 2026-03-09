@@ -12,7 +12,7 @@ type KitComponent = {
 };
 
 type TentKit = {
-    id: string;
+    id: string;             // BundleTemplate.id
     name: string;
     subcategory: string | null;
     availableKits: number;
@@ -20,33 +20,37 @@ type TentKit = {
     components: KitComponent[];
 };
 
-type DeployedItem = {
-    itemId: string;
-    itemName: string;
-    quantityDeployed: number;
-    availableQuantity: number;
-    shiftType: "WAREHOUSE" | "SITE";
-    expectedReturnDate?: string;
-    notes?: string;
-    fromKitName?: string; // tracks which kit this came from
+/** Payload passed to onAddKit when user confirms a kit selection */
+export type KitAddPayload = {
+    bundleId: string;
+    kitName: string;
+    kitQty: number;
+    components: {
+        itemId: string;
+        itemName: string;
+        componentType: string | null;
+        quantityPerKit: number;
+        quantityDeployed: number;   // = quantityPerKit * kitQty
+        availableQuantity: number;
+    }[];
 };
 
 interface TentKitSelectorProps {
-    /** Called with all expanded component items when a kit is confirmed */
-    onAddKitComponents: (items: DeployedItem[]) => void;
-    /** Already deployed item IDs — used to warn about duplicates */
-    existingItemIds?: string[];
+    /** Called when user clicks "Add N × Kit" */
+    onAddKit: (kit: KitAddPayload) => void;
+    /** BundleTemplate IDs already added — used to show "already added" state */
+    existingBundleIds?: string[];
 }
 
 export default function TentKitSelector({
-    onAddKitComponents,
-    existingItemIds = [],
+    onAddKit,
+    existingBundleIds = [],
 }: TentKitSelectorProps) {
     const [kits, setKits] = useState<TentKit[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedKit, setSelectedKit] = useState<TentKit | null>(null);
     const [kitQty, setKitQty] = useState(1);
-    const [expanded, setExpanded] = useState(true); // expanded by default — deploying kits is primary action
+    const [expanded, setExpanded] = useState(true); // expanded by default
 
     useEffect(() => {
         fetch("/api/tent-kits")
@@ -64,19 +68,24 @@ export default function TentKitSelector({
     const handleAddKit = () => {
         if (!selectedKit || kitQty < 1) return;
 
-        const items: DeployedItem[] = selectedKit.components.map((comp) => ({
-            itemId: comp.id,
-            itemName: comp.name,
-            quantityDeployed: comp.quantityPerKit * kitQty,
-            availableQuantity: comp.availableQuantity,
-            shiftType: "SITE",
-            fromKitName: `${selectedKit.name} (×${kitQty})`,
-        }));
+        const payload: KitAddPayload = {
+            bundleId: selectedKit.id,
+            kitName: selectedKit.name,
+            kitQty,
+            components: selectedKit.components.map((comp) => ({
+                itemId: comp.id,
+                itemName: comp.name,
+                componentType: comp.componentType,
+                quantityPerKit: comp.quantityPerKit,
+                quantityDeployed: comp.quantityPerKit * kitQty,
+                availableQuantity: comp.availableQuantity,
+            })),
+        };
 
-        onAddKitComponents(items);
+        onAddKit(payload);
         setSelectedKit(null);
         setKitQty(1);
-        setExpanded(false);
+        setExpanded(false); // collapse after adding
     };
 
     const maxKitsForSelected = selectedKit
@@ -128,6 +137,7 @@ export default function TentKitSelector({
                                 {kits.map((kit) => {
                                     const isSelected = selectedKit?.id === kit.id;
                                     const hasStock = kit.availableKits > 0;
+                                    const alreadyAdded = existingBundleIds.includes(kit.id);
                                     return (
                                         <button
                                             key={kit.id}
@@ -154,19 +164,24 @@ export default function TentKitSelector({
                                                 <span className="text-xs text-gray-500">
                                                     {kit.components.length} components
                                                 </span>
-                                                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${hasStock
-                                                    ? "bg-green-100 text-green-700"
-                                                    : "bg-red-100 text-red-600"
-                                                    }`}>
-                                                    {kit.availableKits} avail
-                                                </span>
+                                                <div className="flex items-center gap-1">
+                                                    {alreadyAdded && (
+                                                        <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">✓ added</span>
+                                                    )}
+                                                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${hasStock
+                                                        ? "bg-green-100 text-green-700"
+                                                        : "bg-red-100 text-red-600"
+                                                        }`}>
+                                                        {kit.availableKits} avail
+                                                    </span>
+                                                </div>
                                             </div>
                                         </button>
                                     );
                                 })}
                             </div>
 
-                            {/* Selected Kit: Qty + Components Preview */}
+                            {/* Selected Kit Qty + Confirm */}
                             {selectedKit && (
                                 <div className="mt-3 p-4 bg-white rounded-lg border border-amber-300 shadow-sm">
                                     <div className="flex items-center justify-between mb-3">
@@ -186,31 +201,24 @@ export default function TentKitSelector({
                                         </div>
                                     </div>
 
-                                    {/* Component breakdown */}
+                                    {/* Component preview */}
                                     <div className="mb-3 bg-amber-50 rounded-lg p-3">
                                         <p className="text-xs font-medium text-amber-800 mb-2">
-                                            Will add these {selectedKit.components.length} items:
+                                            Will add {selectedKit.components.length} components:
                                         </p>
                                         <div className="space-y-1">
                                             {selectedKit.components.map((comp) => {
                                                 const totalQty = comp.quantityPerKit * kitQty;
-                                                const isAlreadyAdded = existingItemIds.includes(comp.id);
                                                 const hasEnough = comp.availableQuantity >= totalQty;
                                                 return (
                                                     <div
                                                         key={comp.id}
-                                                        className={`flex justify-between items-center text-xs py-1 px-2 rounded ${isAlreadyAdded
-                                                            ? "bg-yellow-100 text-yellow-800"
-                                                            : !hasEnough
-                                                                ? "bg-red-50 text-red-700"
-                                                                : "text-gray-700"
-                                                            }`}
+                                                        className={`flex justify-between items-center text-xs py-1 px-2 rounded ${!hasEnough ? "bg-red-50 text-red-700" : "text-gray-700"}`}
                                                     >
-                                                        <span className="flex-1">
-                                                            {isAlreadyAdded && "⚠ "}
+                                                        <span className="flex items-center gap-1 flex-1">
                                                             {comp.name}
                                                             {comp.componentType && (
-                                                                <span className="text-xs font-medium ml-1 bg-gray-200 text-gray-600 px-1 py-0.5 rounded">
+                                                                <span className="text-xs font-medium bg-gray-200 text-gray-600 px-1 py-0.5 rounded">
                                                                     {comp.componentType}
                                                                 </span>
                                                             )}
@@ -229,21 +237,17 @@ export default function TentKitSelector({
                                         </div>
                                     </div>
 
-                                    {/* Warnings */}
-                                    {existingItemIds.some((id) =>
-                                        selectedKit.components.some((c) => c.id === id)
-                                    ) && (
-                                            <p className="text-xs text-yellow-700 bg-yellow-50 border border-yellow-200 rounded px-3 py-2 mb-3">
-                                                ⚠️ Some components are already in your list — they will be updated with the new quantities.
-                                            </p>
-                                        )}
+                                    {/* You can still edit quantities after adding via the ✏️ button */}
+                                    <p className="text-xs text-gray-400 mb-3">
+                                        ✏️ You can adjust individual component quantities after adding.
+                                    </p>
 
                                     <button
                                         type="button"
                                         onClick={handleAddKit}
                                         className="w-full btn btn-primary text-sm py-2"
                                     >
-                                        ⛺ Add {kitQty} × {selectedKit.name} ({selectedKit.components.length} items)
+                                        ⛺ Add {kitQty} × {selectedKit.name}
                                     </button>
                                 </div>
                             )}
