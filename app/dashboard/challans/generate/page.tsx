@@ -389,12 +389,12 @@ export default function GenerateChallansPage() {
                                     <table className="table w-full">
                                         <thead className="bg-gray-50">
                                             <tr>
-                                                <th className="table-header">Item</th>
-                                                <th className="table-header">Category</th>
-                                                <th className="table-header text-center">Available</th>
-                                                <th className="table-header">Assign to Truck</th>
-                                                <th className="table-header text-center">Qty</th>
-                                                <th className="table-header"></th>
+                                                <th className="table-header" style={{ width: "25%" }}>Item</th>
+                                                <th className="table-header" style={{ width: "15%" }}>Category</th>
+                                                <th className="table-header text-center" style={{ width: "10%" }}>Available</th>
+                                                <th className="table-header" style={{ width: "28%" }}>Assign to Truck</th>
+                                                <th className="table-header text-center" style={{ width: "12%" }}>Qty</th>
+                                                <th className="table-header" style={{ width: "10%" }}></th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-200">
@@ -411,7 +411,7 @@ export default function GenerateChallansPage() {
                                                         </td>
                                                         <td className="table-cell">
                                                             <select
-                                                                className="input text-sm py-1"
+                                                                className="input text-sm py-1 w-full"
                                                                 value={sel.truckId}
                                                                 disabled={trucks.length === 0}
                                                                 onChange={(e) => {
@@ -434,7 +434,7 @@ export default function GenerateChallansPage() {
                                                                 min={1}
                                                                 max={item.quantity}
                                                                 value={sel.qty}
-                                                                className="input text-sm py-1 w-20 text-center"
+                                                                className="input text-sm py-1 w-full text-center"
                                                                 onChange={(e) => {
                                                                     const newSel = new Map(itemSelections);
                                                                     newSel.set(item.itemId, { ...sel, qty: parseInt(e.target.value) || 1 });

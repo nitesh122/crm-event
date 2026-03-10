@@ -32,8 +32,8 @@ export default async function ChallansPage() {
         subtitle="Delivery and dispatch notes"
         action={
           canManage ? (
-            <Link href="/dashboard/challans/new" className="btn btn-primary">
-              + Create Challan
+            <Link href="/dashboard/challans/generate" className="btn btn-primary">
+              ⚡ Generate Challan
             </Link>
           ) : undefined
         }
