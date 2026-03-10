@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Header from "@/components/Header";
 import Link from "next/link";
+import SiteDeployButton from "./SiteDeployButton";
 
 export default async function SiteDetailPage({
   params,
@@ -49,10 +50,19 @@ export default async function SiteDetailPage({
         title={site.name}
         subtitle={site.location}
         action={
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            <SiteDeployButton siteId={site.id} siteName={site.name} />
+            {site.siteInventory.length > 0 && (
+              <Link
+                href={`/dashboard/challans/generate?siteId=${site.id}`}
+                className="btn btn-primary"
+              >
+                ⚡ Generate Challan
+              </Link>
+            )}
             <Link
               href={`/dashboard/sites/${site.id}/inventory`}
-              className="btn btn-primary"
+              className="btn btn-secondary"
             >
               View Inventory
             </Link>
@@ -77,11 +87,10 @@ export default async function SiteDetailPage({
                 <label className="text-sm font-medium text-gray-600">Status</label>
                 <p className="mt-1">
                   <span
-                    className={`px-3 py-1 rounded-full text-sm font-medium ${
-                      site.isActive
-                        ? "bg-green-100 text-green-800"
-                        : "bg-gray-100 text-gray-800"
-                    }`}
+                    className={`px-3 py-1 rounded-full text-sm font-medium ${site.isActive
+                      ? "bg-green-100 text-green-800"
+                      : "bg-gray-100 text-gray-800"
+                      }`}
                   >
                     {site.isActive ? "Active" : "Inactive"}
                   </span>
@@ -151,13 +160,12 @@ export default async function SiteDetailPage({
                         </td>
                         <td className="table-cell">
                           <span
-                            className={`px-2 py-1 text-xs rounded-full ${
-                              project.status === "ACTIVE"
-                                ? "bg-green-100 text-green-800"
-                                : project.status === "COMPLETED"
+                            className={`px-2 py-1 text-xs rounded-full ${project.status === "ACTIVE"
+                              ? "bg-green-100 text-green-800"
+                              : project.status === "COMPLETED"
                                 ? "bg-gray-100 text-gray-800"
                                 : "bg-blue-100 text-blue-800"
-                            }`}
+                              }`}
                           >
                             {project.status}
                           </span>

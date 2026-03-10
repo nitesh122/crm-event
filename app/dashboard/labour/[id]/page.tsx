@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
+import { useToast } from "@/lib/hooks/useToast";
 
 interface Site {
   id: string;
@@ -14,7 +15,7 @@ interface AttendanceRecord {
   id: string;
   labourName: string;
   date: Date;
-  locationType: string;
+  shiftType: string;
   siteId: string | null;
   shiftsWorked: string;
   wagePerShift: string | null;
@@ -32,6 +33,7 @@ export default function EditAttendancePage({
   params: { id: string };
 }) {
   const router = useRouter();
+  const { success, error } = useToast();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -58,7 +60,7 @@ export default function EditAttendancePage({
       })
       .catch((err) => {
         console.error("Error loading attendance:", err);
-        alert("Failed to load attendance record");
+        error("Failed to load attendance record");
         setLoading(false);
       });
   }, [params.id]);
@@ -84,16 +86,16 @@ export default function EditAttendancePage({
       });
 
       if (response.ok) {
-        alert("Attendance updated successfully");
+        success("Attendance updated successfully");
         router.push("/labour");
         router.refresh();
       } else {
-        const error = await response.json();
-        alert(error.error || "Failed to update attendance");
+        const errorData = await response.json();
+        error(errorData.error || "Failed to update attendance");
       }
-    } catch (error) {
-      console.error("Error updating attendance:", error);
-      alert("An error occurred");
+    } catch (err) {
+      console.error("Error updating attendance:", err);
+      error("An error occurred while updating attendance");
     } finally {
       setSubmitting(false);
     }
@@ -112,16 +114,16 @@ export default function EditAttendancePage({
       });
 
       if (response.ok) {
-        alert("Attendance record deleted");
+        success("Attendance record deleted");
         router.push("/labour");
         router.refresh();
       } else {
-        const error = await response.json();
-        alert(error.error || "Failed to delete attendance");
+        const errorData = await response.json();
+        error(errorData.error || "Failed to delete attendance");
       }
-    } catch (error) {
-      console.error("Error deleting attendance:", error);
-      alert("An error occurred");
+    } catch (err) {
+      console.error("Error deleting attendance:", err);
+      error("An error occurred while deleting attendance");
     } finally {
       setDeleting(false);
     }
@@ -177,18 +179,17 @@ export default function EditAttendancePage({
                 <div>
                   <strong>Type:</strong>{" "}
                   <span
-                    className={`px-2 py-1 text-xs rounded-full font-medium ${
-                      attendance.locationType === "WAREHOUSE"
-                        ? "bg-blue-100 text-blue-800"
-                        : "bg-green-100 text-green-800"
-                    }`}
+                    className={`px-2 py-1 text-xs rounded-full font-medium ${attendance.shiftType === "WAREHOUSE"
+                      ? "bg-blue-100 text-blue-800"
+                      : "bg-green-100 text-green-800"
+                      }`}
                   >
-                    {attendance.locationType}
+                    {attendance.shiftType}
                   </span>
                 </div>
                 <div>
                   <strong>Location:</strong>{" "}
-                  {attendance.locationType === "SITE"
+                  {attendance.shiftType === "SITE"
                     ? attendance.site?.name
                     : "Main Warehouse"}
                 </div>

@@ -1,3 +1,4 @@
+// Dashboard layout
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
@@ -19,7 +20,7 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen">
       <Sidebar userRole={session.user.role} />
       <div
         className="flex-1 overflow-auto bg-gray-50"
