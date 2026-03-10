@@ -386,15 +386,23 @@ export default function GenerateChallansPage() {
                             {/* Items Table */}
                             {availableItems.length > 0 && (
                                 <div className="overflow-x-auto mb-6">
-                                    <table className="table w-full">
+                                    <table className="table w-full" style={{ tableLayout: "fixed" }}>
+                                        <colgroup>
+                                            <col style={{ width: "22%" }} />
+                                            <col style={{ width: "14%" }} />
+                                            <col style={{ width: "9%" }} />
+                                            <col style={{ width: "32%" }} />
+                                            <col style={{ width: "11%" }} />
+                                            <col style={{ width: "12%" }} />
+                                        </colgroup>
                                         <thead className="bg-gray-50">
                                             <tr>
-                                                <th className="table-header" style={{ width: "25%" }}>Item</th>
-                                                <th className="table-header" style={{ width: "15%" }}>Category</th>
-                                                <th className="table-header text-center" style={{ width: "10%" }}>Available</th>
-                                                <th className="table-header" style={{ width: "28%" }}>Assign to Truck</th>
-                                                <th className="table-header text-center" style={{ width: "12%" }}>Qty</th>
-                                                <th className="table-header" style={{ width: "10%" }}></th>
+                                                <th className="table-header">Item</th>
+                                                <th className="table-header">Category</th>
+                                                <th className="table-header text-center">Available</th>
+                                                <th className="table-header">Assign to Truck</th>
+                                                <th className="table-header text-center">Qty</th>
+                                                <th className="table-header"></th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-200">
@@ -402,16 +410,16 @@ export default function GenerateChallansPage() {
                                                 const sel = itemSelections.get(item.itemId) || { truckId: "", qty: 1 };
                                                 return (
                                                     <tr key={item.itemId}>
-                                                        <td className="table-cell font-medium">{item.itemName}</td>
-                                                        <td className="table-cell text-gray-500 text-sm">{item.categoryName}</td>
-                                                        <td className="table-cell text-center">
+                                                        <td className="px-3 py-3 text-sm font-medium text-gray-900 truncate">{item.itemName}</td>
+                                                        <td className="px-3 py-3 text-sm text-gray-500 truncate">{item.categoryName}</td>
+                                                        <td className="px-3 py-3 text-center">
                                                             <span className="bg-gray-100 text-gray-800 px-2 py-0.5 rounded font-semibold text-sm">
                                                                 {item.quantity}
                                                             </span>
                                                         </td>
-                                                        <td className="table-cell">
+                                                        <td className="px-3 py-2">
                                                             <select
-                                                                className="input text-sm py-1 w-full"
+                                                                className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                                                                 value={sel.truckId}
                                                                 disabled={trucks.length === 0}
                                                                 onChange={(e) => {
@@ -428,13 +436,13 @@ export default function GenerateChallansPage() {
                                                                 ))}
                                                             </select>
                                                         </td>
-                                                        <td className="table-cell text-center">
+                                                        <td className="px-3 py-2 text-center">
                                                             <input
                                                                 type="number"
                                                                 min={1}
                                                                 max={item.quantity}
                                                                 value={sel.qty}
-                                                                className="input text-sm py-1 w-full text-center"
+                                                                className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary-500"
                                                                 onChange={(e) => {
                                                                     const newSel = new Map(itemSelections);
                                                                     newSel.set(item.itemId, { ...sel, qty: parseInt(e.target.value) || 1 });
@@ -442,11 +450,11 @@ export default function GenerateChallansPage() {
                                                                 }}
                                                             />
                                                         </td>
-                                                        <td className="table-cell">
+                                                        <td className="px-3 py-2">
                                                             <button
                                                                 onClick={() => handleAssignItem(item)}
                                                                 disabled={trucks.length === 0}
-                                                                className="btn btn-primary btn-sm disabled:opacity-40"
+                                                                className="btn btn-primary btn-sm disabled:opacity-40 w-full"
                                                             >
                                                                 Add
                                                             </button>
