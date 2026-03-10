@@ -377,7 +377,7 @@ export default async function PrintChallanPage({
                 <th className="text-center" style={{ width: "5%" }}>S.No</th>
                 <th style={{ width: "55%" }}>Description of Goods</th>
                 <th className="text-center" style={{ width: "10%" }}>Qty</th>
-                <th className="text-right" style={{ width: "15%" }}>Rate</th>
+                <th className="text-right" style={{ width: "15%" }}>HSN Code</th>
                 <th className="text-right" style={{ width: "15%" }}>Amount</th>
               </tr>
             </thead>

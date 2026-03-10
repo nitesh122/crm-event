@@ -2,19 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { DndContext, DragEndEvent } from "@dnd-kit/core";
 import Link from "next/link";
 import Header from "@/components/Header";
 import { useToast } from "@/lib/hooks/useToast";
 import { useSiteItems } from "./hooks/useSiteItems";
 import { useProjects } from "./hooks/useProjects";
-import { SiteItem, KitGroup, Truck, TruckItem, PendingDrop } from "./types";
-import DraggableItem from "./components/DraggableItem";
-import TruckDropZone from "./components/TruckDropZone";
-import QuantityDialog from "./components/QuantityDialog";
+import { SiteItem, KitGroup, Truck, TruckItem } from "./types";
 
 
-// KitGroupCard: shows a tent kit grouped summary (used in challan generate page)
+// KitGroupCard: shows a tent kit grouped summary
 function KitGroupCard({ kg }: { kg: KitGroup }) {
     const [open, setOpen] = useState(false);
     return (
@@ -82,9 +78,8 @@ export default function GenerateChallansPage() {
     const [creatingChallan, setCreatingChallan] = useState(false);
     const [creatingAll, setCreatingAll] = useState(false);
 
-    // Quantity dialog state
-    const [quantityDialogOpen, setQuantityDialogOpen] = useState(false);
-    const [pendingDrop, setPendingDrop] = useState<PendingDrop | null>(null);
+    // Per-item assignment selections: itemId -> { truckId, qty }
+    const [itemSelections, setItemSelections] = useState<Map<string, { truckId: string; qty: number }>>(new Map());
 
     // Initialize remaining quantities when items load
     useEffect(() => {
@@ -97,99 +92,81 @@ export default function GenerateChallansPage() {
         }
     }, [siteItems, itemRemainingQuantities]);
 
-    // Calculate available items (items with remaining quantity > 0)
+    // Available items (remaining qty > 0)
     const availableItems = siteItems
         .map(item => ({
             ...item,
             quantity: itemRemainingQuantities.get(item.itemId) || 0,
-            totalWeight: ((itemRemainingQuantities.get(item.itemId) || 0) * (item.weightPerUnit || 0)),
         }))
         .filter(item => item.quantity > 0);
+
     const unassignedCount = availableItems.length;
 
-    // Handle adding new truck (with default capacity)
     const handleAddTruck = () => {
         const newTruck: Truck = {
             id: `truck-${Date.now()}`,
             number: trucks.length + 1,
-            capacity: 5000, // Default capacity in kg
+            capacity: 5000,
             items: [],
             totalWeight: 0,
         };
         setTrucks([...trucks, newTruck]);
     };
 
-    // Handle drag end - open quantity dialog
-    const handleDragEnd = (event: DragEndEvent) => {
-        const { active, over } = event;
-
-        if (!over) return;
-
-        const itemData = active.data.current as SiteItem;
-        const truckId = over.id as string;
-
-        const truck = trucks.find((t) => t.id === truckId);
-        if (!truck) return;
-
-        // Check if item already in this truck
-        if (truck.items.some((i) => i.itemId === itemData.itemId)) {
-            error("Item already in this truck");
+    const handleAssignItem = (item: SiteItem) => {
+        const selection = itemSelections.get(item.itemId);
+        if (!selection || !selection.truckId) {
+            error("Please select a truck");
             return;
         }
 
-        // Open quantity dialog
-        setPendingDrop({ item: itemData, truckId });
-        setQuantityDialogOpen(true);
-    };
+        const qty = selection.qty;
+        if (!qty || qty <= 0) {
+            error("Please enter a valid quantity");
+            return;
+        }
 
-    // Handle quantity confirmation from dialog
-    const handleQuantityConfirm = (quantity: number) => {
-        if (!pendingDrop) return;
+        const available = itemRemainingQuantities.get(item.itemId) || 0;
+        if (qty > available) {
+            error(`Only ${available} units available`);
+            return;
+        }
 
-        const { item: itemData, truckId } = pendingDrop;
-        const remainingQty = itemRemainingQuantities.get(itemData.itemId) || 0;
+        const truck = trucks.find((t) => t.id === selection.truckId);
+        if (!truck) return;
 
-        // Add item to truck with specified quantity
+        if (truck.items.some((i) => i.itemId === item.itemId)) {
+            error("Item already added to this truck");
+            return;
+        }
+
         const truckItem: TruckItem = {
-            itemId: itemData.itemId,
-            itemName: itemData.itemName,
-            categoryName: itemData.categoryName,
-            quantity: quantity,
-            weightPerUnit: itemData.weightPerUnit,
-            totalWeight: quantity * (itemData.weightPerUnit || 0),
+            itemId: item.itemId,
+            itemName: item.itemName,
+            categoryName: item.categoryName,
+            quantity: qty,
+            weightPerUnit: item.weightPerUnit,
+            totalWeight: qty * (item.weightPerUnit || 0),
         };
 
-        setTrucks(
-            trucks.map((t) =>
-                t.id === truckId
-                    ? {
-                        ...t,
-                        items: [...t.items, truckItem],
-                        totalWeight: t.totalWeight + truckItem.totalWeight,
-                    }
-                    : t
-            )
-        );
+        setTrucks(trucks.map((t) =>
+            t.id === selection.truckId
+                ? { ...t, items: [...t.items, truckItem], totalWeight: t.totalWeight + truckItem.totalWeight }
+                : t
+        ));
 
-        // Update remaining quantity
-        const newRemainingQuantities = new Map(itemRemainingQuantities);
-        newRemainingQuantities.set(itemData.itemId, remainingQty - quantity);
-        setItemRemainingQuantities(newRemainingQuantities);
+        const newRemaining = new Map(itemRemainingQuantities);
+        newRemaining.set(item.itemId, available - qty);
+        setItemRemainingQuantities(newRemaining);
 
-        // Close dialog
-        setQuantityDialogOpen(false);
-        setPendingDrop(null);
+        // Clear selection for this item
+        const newSelections = new Map(itemSelections);
+        newSelections.delete(item.itemId);
+        setItemSelections(newSelections);
 
-        success(`Added ${quantity} units to truck`);
+        success(`Added ${qty} × ${item.itemName} to Truck ${truck.number}`);
     };
 
-    // Handle quantity dialog cancel
-    const handleQuantityCancel = () => {
-        setQuantityDialogOpen(false);
-        setPendingDrop(null);
-    };
-
-    // Handle removing item from truck
     const handleRemoveItem = (truckId: string, itemId: string) => {
         const truck = trucks.find((t) => t.id === truckId);
         if (!truck) return;
@@ -197,47 +174,32 @@ export default function GenerateChallansPage() {
         const item = truck.items.find((i) => i.itemId === itemId);
         if (!item) return;
 
-        setTrucks(
-            trucks.map((t) =>
-                t.id === truckId
-                    ? {
-                        ...t,
-                        items: t.items.filter((i) => i.itemId !== itemId),
-                        totalWeight: t.totalWeight - item.totalWeight,
-                    }
-                    : t
-            )
-        );
+        setTrucks(trucks.map((t) =>
+            t.id === truckId
+                ? { ...t, items: t.items.filter((i) => i.itemId !== itemId), totalWeight: t.totalWeight - item.totalWeight }
+                : t
+        ));
 
-        // Return quantity to available items
-        const newRemainingQuantities = new Map(itemRemainingQuantities);
-        const currentRemaining = newRemainingQuantities.get(itemId) || 0;
-        newRemainingQuantities.set(itemId, currentRemaining + item.quantity);
-        setItemRemainingQuantities(newRemainingQuantities);
+        const newRemaining = new Map(itemRemainingQuantities);
+        newRemaining.set(itemId, (newRemaining.get(itemId) || 0) + item.quantity);
+        setItemRemainingQuantities(newRemaining);
     };
 
-    // Handle removing truck
     const handleRemoveTruck = (truckId: string) => {
         const truck = trucks.find((t) => t.id === truckId);
         if (!truck) return;
 
-        // Return all items to available
-        const newRemainingQuantities = new Map(itemRemainingQuantities);
+        const newRemaining = new Map(itemRemainingQuantities);
         truck.items.forEach((item) => {
-            const currentRemaining = newRemainingQuantities.get(item.itemId) || 0;
-            newRemainingQuantities.set(item.itemId, currentRemaining + item.quantity);
+            newRemaining.set(item.itemId, (newRemaining.get(item.itemId) || 0) + item.quantity);
         });
-        setItemRemainingQuantities(newRemainingQuantities);
+        setItemRemainingQuantities(newRemaining);
 
-        // Remove truck and renumber
-        const updatedTrucks = trucks
-            .filter((t) => t.id !== truckId)
-            .map((t, index) => ({ ...t, number: index + 1 }));
-
-        setTrucks(updatedTrucks);
+        setTrucks(
+            trucks.filter((t) => t.id !== truckId).map((t, index) => ({ ...t, number: index + 1 }))
+        );
     };
 
-    // Create challan for single truck
     const handleCreateChallan = async (truckId: string) => {
         if (!selectedProjectId) {
             error("Please select a project first");
@@ -269,26 +231,19 @@ export default function GenerateChallansPage() {
             if (response.ok) {
                 const data = await response.json();
                 success(`Challan ${data.challanNumber} created successfully!`);
-
-                // Remove this truck
                 handleRemoveTruck(truckId);
-
-                // Navigate to challan detail
                 router.push(`/dashboard/challans/${data.challanId}`);
             } else {
                 const data = await response.json();
-                console.error("Challan creation failed:", data);
                 error(data.error || "Failed to create challan");
             }
         } catch (err) {
-            console.error("Error creating challan:", err);
-            error(err instanceof Error ? err.message : "An error occurred while creating challan");
+            error(err instanceof Error ? err.message : "An error occurred");
         } finally {
             setCreatingChallan(false);
         }
     };
 
-    // Create all challans at once
     const handleCreateAllChallans = async () => {
         if (!selectedProjectId) {
             error("Please select a project first");
@@ -300,7 +255,6 @@ export default function GenerateChallansPage() {
             return;
         }
 
-        // Warn about unassigned items
         if (unassignedCount > 0) {
             const proceed = confirm(
                 `⚠️ Warning: ${unassignedCount} item(s) are not assigned to any truck. Do you want to proceed anyway?`
@@ -337,12 +291,10 @@ export default function GenerateChallansPage() {
                 router.refresh();
             } else {
                 const data = await response.json();
-                console.error("Bulk challan creation failed:", data);
                 error(data.error || "Failed to create challans");
             }
         } catch (err) {
-            console.error("Error creating challans:", err);
-            error(err instanceof Error ? err.message : "An error occurred while creating challans");
+            error(err instanceof Error ? err.message : "An error occurred");
         } finally {
             setCreatingAll(false);
         }
@@ -362,7 +314,7 @@ export default function GenerateChallansPage() {
     return (
         <div>
             <Header
-                title="Generate Challans - Drag & Drop"
+                title="Generate Challans"
                 subtitle={siteId ? "Assign items to trucks" : "Manual challan generation"}
                 action={
                     <Link href="/dashboard/challans" className="btn btn-secondary">
@@ -373,7 +325,8 @@ export default function GenerateChallansPage() {
 
             <div className="p-8">
                 <div className="max-w-7xl mx-auto space-y-6">
-                    {/* Project Selection */}
+
+                    {/* Step 1: Project */}
                     <div className="card">
                         <h2 className="text-lg font-semibold mb-4">1. Select Project</h2>
                         <select
@@ -408,90 +361,175 @@ export default function GenerateChallansPage() {
                         </div>
                     )}
 
-                    {/* Main Layout - Items and Trucks */}
+                    {/* Step 2: Assign Items */}
                     {siteItems.length === 0 ? (
                         <div className="card text-center py-12">
                             <div className="text-6xl mb-4">📦</div>
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                                No Items Available
-                            </h3>
-                            <p className="text-gray-600">
-                                There are no items deployed at this site.
-                            </p>
+                            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Items Available</h3>
+                            <p className="text-gray-600">There are no items deployed at this site.</p>
                         </div>
                     ) : (
-                        <DndContext onDragEnd={handleDragEnd}>
-                            <div className="card">
-                                <h2 className="text-lg font-semibold mb-4">
-                                    2. Assign Items to Trucks
-                                </h2>
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                    {/* Available Items */}
-                                    <div>
-                                        <div className="flex items-center justify-between mb-3">
-                                            <h3 className="font-semibold text-gray-900">
-                                                📦 Available Items ({availableItems.length})
-                                            </h3>
-                                        </div>
-                                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 bg-gray-50 max-h-[600px] overflow-y-auto">
-                                            {availableItems.length === 0 ? (
-                                                <p className="text-center text-gray-500 text-sm py-8">
-                                                    All items have been assigned to trucks
-                                                </p>
-                                            ) : (
-                                                availableItems.map((item) => (
-                                                    <DraggableItem key={item.itemId} item={item} />
-                                                ))
-                                            )}
-                                        </div>
-                                    </div>
+                        <div className="card">
+                            <div className="flex items-center justify-between mb-4">
+                                <h2 className="text-lg font-semibold">2. Assign Items to Trucks</h2>
+                                <button onClick={handleAddTruck} className="btn btn-primary">
+                                    + Add Truck
+                                </button>
+                            </div>
 
-                                    {/* Trucks */}
-                                    <div>
-                                        <div className="flex items-center justify-between mb-3">
-                                            <h3 className="font-semibold text-gray-900">
-                                                🚛 Trucks ({trucks.length})
-                                            </h3>
-                                            <button
-                                                onClick={handleAddTruck}
-                                                className="btn btn-primary btn-sm"
-                                            >
-                                                + Add Truck
-                                            </button>
-                                        </div>
-                                        <div className="space-y-4 max-h-[600px] overflow-y-auto">
-                                            {trucks.length === 0 ? (
-                                                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center bg-gray-50">
-                                                    <p className="text-gray-500 text-sm mb-3">
-                                                        No trucks added yet
-                                                    </p>
+                            {trucks.length === 0 && (
+                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                                    <p className="text-blue-800 text-sm">Add at least one truck before assigning items.</p>
+                                </div>
+                            )}
+
+                            {/* Items Table */}
+                            {availableItems.length > 0 && (
+                                <div className="overflow-x-auto mb-6">
+                                    <table className="table w-full">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="table-header">Item</th>
+                                                <th className="table-header">Category</th>
+                                                <th className="table-header text-center">Available</th>
+                                                <th className="table-header">Assign to Truck</th>
+                                                <th className="table-header text-center">Qty</th>
+                                                <th className="table-header"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-200">
+                                            {availableItems.map((item) => {
+                                                const sel = itemSelections.get(item.itemId) || { truckId: "", qty: 1 };
+                                                return (
+                                                    <tr key={item.itemId}>
+                                                        <td className="table-cell font-medium">{item.itemName}</td>
+                                                        <td className="table-cell text-gray-500 text-sm">{item.categoryName}</td>
+                                                        <td className="table-cell text-center">
+                                                            <span className="bg-gray-100 text-gray-800 px-2 py-0.5 rounded font-semibold text-sm">
+                                                                {item.quantity}
+                                                            </span>
+                                                        </td>
+                                                        <td className="table-cell">
+                                                            <select
+                                                                className="input text-sm py-1"
+                                                                value={sel.truckId}
+                                                                disabled={trucks.length === 0}
+                                                                onChange={(e) => {
+                                                                    const newSel = new Map(itemSelections);
+                                                                    newSel.set(item.itemId, { ...sel, truckId: e.target.value });
+                                                                    setItemSelections(newSel);
+                                                                }}
+                                                            >
+                                                                <option value="">Select truck...</option>
+                                                                {trucks.map((t) => (
+                                                                    <option key={t.id} value={t.id}>
+                                                                        Truck {t.number}
+                                                                    </option>
+                                                                ))}
+                                                            </select>
+                                                        </td>
+                                                        <td className="table-cell text-center">
+                                                            <input
+                                                                type="number"
+                                                                min={1}
+                                                                max={item.quantity}
+                                                                value={sel.qty}
+                                                                className="input text-sm py-1 w-20 text-center"
+                                                                onChange={(e) => {
+                                                                    const newSel = new Map(itemSelections);
+                                                                    newSel.set(item.itemId, { ...sel, qty: parseInt(e.target.value) || 1 });
+                                                                    setItemSelections(newSel);
+                                                                }}
+                                                            />
+                                                        </td>
+                                                        <td className="table-cell">
+                                                            <button
+                                                                onClick={() => handleAssignItem(item)}
+                                                                disabled={trucks.length === 0}
+                                                                className="btn btn-primary btn-sm disabled:opacity-40"
+                                                            >
+                                                                Add
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+
+                            {availableItems.length === 0 && trucks.length > 0 && (
+                                <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                                    <p className="text-green-800 font-medium">✓ All items have been assigned to trucks</p>
+                                </div>
+                            )}
+
+                            {/* Truck Cards */}
+                            {trucks.length > 0 && (
+                                <div className="space-y-4">
+                                    <h3 className="font-semibold text-gray-900">🚛 Trucks</h3>
+                                    {trucks.map((truck) => (
+                                        <div key={truck.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                                            <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-200">
+                                                <span className="font-semibold text-gray-900">Truck {truck.number}</span>
+                                                <div className="flex gap-2">
+                                                    {truck.items.length > 0 && (
+                                                        <button
+                                                            onClick={() => handleCreateChallan(truck.id)}
+                                                            disabled={creatingChallan || !selectedProjectId}
+                                                            className="btn btn-primary btn-sm disabled:opacity-40"
+                                                        >
+                                                            {creatingChallan ? "Creating..." : "📄 Create Challan"}
+                                                        </button>
+                                                    )}
                                                     <button
-                                                        onClick={handleAddTruck}
-                                                        className="btn btn-primary"
+                                                        onClick={() => handleRemoveTruck(truck.id)}
+                                                        className="btn btn-secondary btn-sm text-red-600"
                                                     >
-                                                        + Add Your First Truck
+                                                        Remove Truck
                                                     </button>
                                                 </div>
+                                            </div>
+                                            {truck.items.length === 0 ? (
+                                                <p className="text-gray-400 text-sm text-center py-4">No items assigned yet</p>
                                             ) : (
-                                                trucks.map((truck) => (
-                                                    <TruckDropZone
-                                                        key={truck.id}
-                                                        truck={truck}
-                                                        onRemoveItem={handleRemoveItem}
-                                                        onRemoveTruck={handleRemoveTruck}
-                                                        onCreateChallan={handleCreateChallan}
-                                                        isCreating={creatingChallan}
-                                                    />
-                                                ))
+                                                <table className="table w-full">
+                                                    <thead className="bg-gray-50">
+                                                        <tr>
+                                                            <th className="table-header">Item</th>
+                                                            <th className="table-header">Category</th>
+                                                            <th className="table-header text-center">Qty</th>
+                                                            <th className="table-header"></th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-gray-100">
+                                                        {truck.items.map((item) => (
+                                                            <tr key={item.itemId}>
+                                                                <td className="table-cell font-medium">{item.itemName}</td>
+                                                                <td className="table-cell text-gray-500 text-sm">{item.categoryName}</td>
+                                                                <td className="table-cell text-center">{item.quantity}</td>
+                                                                <td className="table-cell text-right">
+                                                                    <button
+                                                                        onClick={() => handleRemoveItem(truck.id, item.itemId)}
+                                                                        className="text-red-500 hover:text-red-700 text-sm font-medium"
+                                                                    >
+                                                                        Remove
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
                                             )}
                                         </div>
-                                    </div>
+                                    ))}
                                 </div>
-                            </div>
-                        </DndContext>
+                            )}
+                        </div>
                     )}
 
-                    {/* Bulk Actions */}
+                    {/* Step 3: Create All */}
                     {trucks.length > 0 && trucks.some((t) => t.items.length > 0) && (
                         <div className="card">
                             <h2 className="text-lg font-semibold mb-4">3. Create Challans</h2>
@@ -499,7 +537,7 @@ export default function GenerateChallansPage() {
                             {unassignedCount > 0 && (
                                 <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
                                     <p className="text-orange-800 font-medium">
-                                        ⚠️ Warning: {unassignedCount} item(s) not assigned to any truck
+                                        ⚠️ {unassignedCount} item(s) not assigned to any truck
                                     </p>
                                 </div>
                             )}
@@ -525,15 +563,6 @@ export default function GenerateChallansPage() {
                     )}
                 </div>
             </div>
-
-            {/* Quantity Dialog */}
-            <QuantityDialog
-                isOpen={quantityDialogOpen}
-                itemName={pendingDrop?.item.itemName || ""}
-                availableQuantity={itemRemainingQuantities.get(pendingDrop?.item.itemId || "") || 0}
-                onConfirm={handleQuantityConfirm}
-                onCancel={handleQuantityCancel}
-            />
         </div>
     );
 }

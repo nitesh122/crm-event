@@ -46,11 +46,6 @@ export type ChallanFormData = {
     }[];
 };
 
-export type PendingDrop = {
-    item: SiteItem;
-    truckId: string;
-};
-
 export type KitGroup = {
     bundleTemplateId: string;
     kitName: string;

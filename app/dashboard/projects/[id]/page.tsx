@@ -79,10 +79,10 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
                     <div className="flex gap-2">
                         {(project.status === "ACTIVE" || project.status === "PLANNED") && (
                             <Link
-                                href={`/dashboard/challans/new?projectId=${project.id}`}
+                                href={`/dashboard/challans/generate?projectId=${project.id}`}
                                 className="btn btn-primary"
                             >
-                                📄 Create Challan
+                                ⚡ Generate Challan
                             </Link>
                         )}
                         <DeleteProjectButton
