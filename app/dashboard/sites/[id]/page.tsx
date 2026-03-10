@@ -53,12 +53,20 @@ export default async function SiteDetailPage({
           <div className="flex gap-2 flex-wrap">
             <SiteDeployButton siteId={site.id} siteName={site.name} />
             {site.siteInventory.length > 0 && (
-              <Link
-                href={`/dashboard/challans/new?siteId=${site.id}`}
-                className="btn btn-secondary"
-              >
-                📄 Create Challan
-              </Link>
+              <>
+                <Link
+                  href={`/dashboard/challans/new?siteId=${site.id}`}
+                  className="btn btn-secondary"
+                >
+                  📄 Create Challan
+                </Link>
+                <Link
+                  href={`/dashboard/challans/generate?siteId=${site.id}`}
+                  className="btn btn-primary"
+                >
+                  ⚡ Generate Challan
+                </Link>
+              </>
             )}
             <Link
               href={`/dashboard/sites/${site.id}/inventory`}

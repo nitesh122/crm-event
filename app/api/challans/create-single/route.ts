@@ -20,24 +20,30 @@ const createSingleSchema = z.object({
     }),
 });
 
-// Generate sequential challan number (CH-XXXXX)
+// Generate sequential challan number (CH-YYYY-XXX)
 async function generateChallanNumber(
     tx: Omit<typeof prisma, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">
 ): Promise<string> {
     const lastChallan = await tx.challan.findFirst({
-        orderBy: { challanNumber: "desc" },
+        orderBy: { createdAt: "desc" },
         select: { challanNumber: true },
     });
 
+    const year = new Date().getFullYear();
+    const prefix = `CH-${year}-`;
+
     let nextNumber = 1;
     if (lastChallan?.challanNumber) {
-        const match = lastChallan.challanNumber.match(/CH-(\d+)/);
-        if (match) {
-            nextNumber = parseInt(match[1], 10) + 1;
+        // Handle both formats: CH-2024-001 and CH-00001
+        const parts = lastChallan.challanNumber.split("-");
+        const lastPart = parts[parts.length - 1];
+
+        if (!isNaN(parseInt(lastPart, 10))) {
+            nextNumber = parseInt(lastPart, 10) + 1;
         }
     }
 
-    return `CH-${nextNumber.toString().padStart(5, "0")}`;
+    return `${prefix}${nextNumber.toString().padStart(3, "0")}`;
 }
 
 // POST /api/challans/create-single
